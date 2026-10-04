@@ -5,7 +5,8 @@
 - Spring Boot 3.5.16; selección dentro del rango 3.5.x obligatorio. [Compatibilidad oficial](https://docs.spring.io/spring-boot/3.5/system-requirements.html).
 - Dominio y aplicación usan Java puro. Adaptadores Spring implementan persistencia, REST y seguridad; fachada delimita transacciones.
 - MySQL 8.4; Flyway gestiona esquema y JPA valida, sin crear tablas automáticamente.
-- El volumen previo tiene el esquema `citas_fcv_training`; `.env` refería otro nombre. Overlay S2 usa el esquema accesible sin alterar datos/credenciales. `scripts/start-s2.ps1` genera claves JWT independientes en `.env.s2`, ignorado por Git.
+- Compose ejecuta `citas-db-ensure` tras el healthcheck de MySQL y antes de la API. El servicio crea el esquema seleccionado si falta y concede permisos al usuario de aplicación; no elimina ni reinicializa volúmenes. El overlay S2 hereda `MYSQL_DATABASE`, igual que el datasource de MySQL.
+- `scripts/start-s2.ps1` genera claves JWT independientes en `.env.s2`, ignorado por Git, y aplica el overlay S2 sin modificar `.env`.
 - React/TypeScript/Vite consume REST directamente.
 
 ## Decisiones de implementación
@@ -18,7 +19,7 @@
 - No se persisten JWT completos ni contraseñas de prueba en documentación.
 
 ## Límites
-- Frontend creado localmente como base revisable; no existe evidencia de exportación Stitch/AI Studio ni aprobación visual.
+- Frontend creado localmente; el usuario confirmó que ya está diseñado y excluyó Stitch del cierre S2.
 - Git raíz ya existía. Se preservó; los dos repos de aplicación son independientes y deben operarse con `git -C`.
 - S2 no incluye recuperación de contraseña, agenda, roles administrativos en UI, rate limiting, envío de correos ni despliegue público.
 - Google Fonts es opcional para presentación; fuentes de sistema sirven como respaldo si no hay conexión.

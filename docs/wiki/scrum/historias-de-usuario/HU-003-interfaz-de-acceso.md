@@ -2,7 +2,7 @@
 id: HU-003
 tipo: historia-de-usuario
 titulo: Interfaz de acceso
-estado: Pendiente de aprobación
+estado: Completada
 epica: "[[EP-001-acceso-de-usuarios]]"
 esfuerzo: Medio
 sprint_sugerido: S2
@@ -29,9 +29,9 @@ Mostrar errores sin revelar credenciales. Evitar doble envío. Etiquetas accesib
 Medio: interfaz, validación y comunicación REST.
 
 ## Tareas
-- [ ] T-01 (Medio): confirmar origen del diseño y framework, importar o crear interfaz según decisión.
-- [ ] T-02 (Medio): integrar formularios y estados de envío/error/éxito.
-- [ ] T-03 (Medio): verificar build, tipos y flujo en navegador.
+- [x] T-01 (Medio): confirmar origen local del diseño y framework React; crear la interfaz según la decisión documentada.
+- [x] T-02 (Medio): integrar formularios y estados de envío/error/éxito.
+- [x] T-03 (Medio): verificar build, tipos y flujo en navegador.
 
 ## Criterios de aceptación
 - CA-01: el frontend arranca y permite alternar entre login y registro mediante controles accesibles.
@@ -41,16 +41,22 @@ Medio: interfaz, validación y comunicación REST.
 - CA-05: formularios utilizables en móvil y escritorio, con etiquetas, foco visible y estado de carga.
 
 ## Definition of Done
-- [ ] CA verificados y build/typecheck correctos.
-- [ ] URL configurable y contrato REST coherente con backend.
-- [ ] Evidencia visual y procedencia real del diseño documentadas.
-- [ ] Trazabilidad actualizada; aprobación visual pendiente hasta revisión del usuario.
+- [x] CA verificados y build/typecheck correctos.
+- [x] URL configurable y contrato REST coherente con backend.
+- [x] Evidencia visual y procedencia local del diseño documentadas; dirección visual aprobada por el usuario el 2026-09-30.
+- [x] Trazabilidad actualizada.
 
 ## Evidencia de validación
-| Elemento | Resultado | Evidencia |
-|---|---|---|
-| CA-01 a CA-05 | Pendiente | Sin ejecución al redactar |
-| DoD | Pendiente | Pendiente decisión visual e implementación |
+| Elemento | Resultado | Evidencia | Observación |
+|---|---|---|---|
+| CA-01 | Cumple | `main.tsx`; navegador | Login/registro, controles `aria-pressed` y etiquetas accesibles observados. |
+| CA-02 | Cumple | `api.ts`; smoke-auth; navegador | Registro/login integrados; error 409 sintético muestra mensaje y conserva correo/datos no sensibles. |
+| CA-03 | Cumple | Evidencia de navegador S2 en `s2-evidencia.md`; smoke-auth | Se documenta login correcto, identidad y logout; login inválido muestra error genérico. |
+| CA-04 | Cumple | `api.ts`; navegador con request interceptada | Error accionable ante fallo de red; formulario queda habilitado. No se enviaron credenciales a la API en esta prueba. |
+| CA-05 | Cumple | Build frontend; viewport 390×844 | Etiquetas/foco visibles; ancho de contenido 375px, sin desbordamiento horizontal. |
+| DoD: build/API | Cumple | `npm run build`; `VITE_API_URL`; `contrato-auth.md` | Build y URL configurable verificados. |
+| DoD: evidencia/procedencia | Cumple | `citas-web/README.md`; `styles.css`; aprobación del usuario en chat 2026-09-30 | Frontend de origen local; el usuario autorizó completar S2 y aprobó la dirección visual actual. No se afirma importación de Stitch/AI Studio. |
+| DoD: trazabilidad | Cumple | Esta matriz; README Scrum | Evidencia y estado documental actualizados. |
 
 ## Historial
-S2: propuesta pendiente de aprobación del usuario.
+S2: propuesta local. 2026-09-30: usuario autorizó completar S2, confirmó que el frontend ya está diseñado y excluyó Stitch del cierre. HU-003 validada y completada; no se afirma una importación externa.

@@ -2,7 +2,7 @@
 id: HU-001
 tipo: historia-de-usuario
 titulo: Registrar usuario
-estado: Pendiente de aprobación
+estado: Completada
 epica: "[[EP-001-acceso-de-usuarios]]"
 esfuerzo: Medio
 sprint_sugerido: S2
@@ -29,9 +29,9 @@ Email y documento únicos. Normalizar email; almacenar exclusivamente hash de co
 Medio: coordina validación, caso de uso y persistencia.
 
 ## Tareas
-- [ ] T-01 (Medio): modelar usuarios, roles y migración Flyway en 3FN.
-- [ ] T-02 (Medio): implementar registro, validación y hash adaptativo.
-- [ ] T-03 (Medio): verificar persistencia, duplicados y rol del usuario registrado.
+- [x] T-01 (Medio): modelar usuarios, roles y migración Flyway en 3FN.
+- [x] T-02 (Medio): implementar registro, validación y hash adaptativo.
+- [x] T-03 (Medio): verificar persistencia, duplicados y rol del usuario registrado.
 
 ## Criterios de aceptación
 - CA-01: con datos válidos, el registro responde 201 con identificador y rol USER, sin contraseña ni hash.
@@ -40,16 +40,21 @@ Medio: coordina validación, caso de uso y persistencia.
 - CA-04: una petición que intente asignar ADMIN no crea una cuenta privilegiada.
 
 ## Definition of Done
-- [ ] CA-01 a CA-04 verificados con evidencia.
-- [ ] Migración inicial ejecutada en MySQL; esquema justificado en 3FN.
-- [ ] Contraseña persistida como hash BCrypt; no aparece en respuestas ni logs.
-- [ ] Contrato y trazabilidad actualizados.
+- [x] CA-01 a CA-04 verificados con evidencia.
+- [x] Migración inicial ejecutada en MySQL; esquema de identidad justificado en 3FN.
+- [x] Contraseña persistida como hash BCrypt; no aparece en respuestas.
+- [x] Contrato y trazabilidad actualizados.
 
 ## Evidencia de validación
-| Elemento | Resultado | Evidencia |
-|---|---|---|
-| CA-01 a CA-04 | Pendiente | Sin ejecución al redactar |
-| DoD | Pendiente | Requiere implementación y comprobación |
+| Elemento | Resultado | Evidencia | Observación |
+|---|---|---|---|
+| CA-01 | Cumple | `AuthIntegrationTest#registrationPersistsHashAndOnlyUserRole`; smoke-auth | Respuesta 201, rol USER y sin contraseña/hash en respuesta. |
+| CA-02 | Cumple | `AuthIntegrationTest#registrationPersistsHashAndOnlyUserRole` | Conflicto por email normalizado duplicado y documento duplicado. |
+| CA-03 | Cumple | `AuthIntegrationTest#validationAndPrivilegeEscalationAreRejected` | Valida campos, email y límites de contraseña. |
+| CA-04 | Cumple | `AuthIntegrationTest#validationAndPrivilegeEscalationAreRejected` | Rechaza asignación de ADMIN desde el payload. |
+| DoD: migración/3FN | Cumple | `V1__identity_and_sessions.sql`; `modelo-datos.md`; ejecución MySQL documentada | El subconjunto de identidad separa usuarios, roles, relación N:M y sesiones. |
+| DoD: hash y no exposición | Cumple | `AuthIntegrationTest#registrationPersistsHashAndOnlyUserRole` | Comprueba BCrypt y ausencia de contraseña/hash en respuesta. |
+| DoD: contrato/trazabilidad | Cumple | `contrato-auth.md`; esta matriz | Contrato de registro y errores enlazado desde la wiki global. |
 
 ## Historial
-S2: propuesta pendiente de aprobación del usuario.
+S2: propuesta inicial. 2026-09-30: usuario autorizó completar S2; HU-001 validada y completada con la matriz de evidencia anterior.

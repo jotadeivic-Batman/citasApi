@@ -2,7 +2,7 @@
 id: HU-002
 tipo: historia-de-usuario
 titulo: Gestionar sesión JWT
-estado: Pendiente de aprobación
+estado: Completada
 epica: "[[EP-001-acceso-de-usuarios]]"
 esfuerzo: Alto
 sprint_sugerido: S2
@@ -29,10 +29,10 @@ Credenciales incorrectas producen un error genérico. Tokens separados por prop�
 Alto: coordina seguridad, persistencia y concurrencia de renovación.
 
 ## Tareas
-- [ ] T-01 (Medio): definir contrato de autenticación y errores.
-- [ ] T-02 (Alto): implementar emisión/validación, rotación y revocación.
-- [ ] T-03 (Medio): restringir rutas y CORS al origen configurado.
-- [ ] T-04 (Alto): probar acceso inválido, propósito de token y renovación repetida.
+- [x] T-01 (Medio): definir contrato de autenticación y errores.
+- [x] T-02 (Alto): implementar emisión/validación, rotación y revocación.
+- [x] T-03 (Medio): restringir rutas y CORS al origen configurado.
+- [x] T-04 (Alto): probar acceso inválido, propósito de token y renovación repetida.
 
 ## Criterios de aceptación
 - CA-01: credenciales válidas retornan access/refresh JWT con expiración e identidad; inválidas responden 401 genérico.
@@ -42,16 +42,22 @@ Alto: coordina seguridad, persistencia y concurrencia de renovación.
 - CA-05: el origen permitido puede consumir la API; un origen distinto no recibe autorización CORS.
 
 ## Definition of Done
-- [ ] Todos los CA verificados, incluyendo persistencia MySQL de sesiones.
-- [ ] Secretos externos al repositorio; access y refresh con claves diferentes.
-- [ ] Pruebas de autenticación y autorización pasan.
-- [ ] Contrato, documentación y enlaces actualizados.
+- [x] Todos los CA verificados con H2 y smoke HTTP contra la API conectada a MySQL.
+- [x] Secretos externos al repositorio; access y refresh se configuran por variables distintas.
+- [x] Pruebas de autenticación y autorización pasan.
+- [x] Contrato, documentación y enlaces actualizados.
 
 ## Evidencia de validación
-| Elemento | Resultado | Evidencia |
-|---|---|---|
-| CA-01 a CA-05 | Pendiente | Sin ejecución al redactar |
-| DoD | Pendiente | Requiere implementación y comprobación |
+| Elemento | Resultado | Evidencia | Observación |
+|---|---|---|---|
+| CA-01 | Cumple | `AuthIntegrationTest#sessionLifecycleAndTokenSeparation`; smoke-auth | Login correcto/incorrecto y tokens separados. |
+| CA-02 | Cumple | `AuthIntegrationTest#expiredAccessAndMissingAuthenticationAreRejected`; `sessionLifecycleAndTokenSeparation` | Rechaza ausencia, expiración, manipulación y token de propósito incorrecto. |
+| CA-03 | Cumple | `AuthIntegrationTest#sessionLifecycleAndTokenSeparation`; `concurrentRefreshHasExactlyOneWinner` | Rotación de refresh; el token anterior se rechaza y solo una renovación concurrente vence. |
+| CA-04 | Cumple | `AuthIntegrationTest#sessionLifecycleAndTokenSeparation` | Logout revoca esa sesión y conserva otra sesión independiente. |
+| CA-05 | Cumple | `AuthIntegrationTest#corsOnlyAllowsConfiguredFrontend`; smoke-auth | Origen configurado permitido; origen no confiable rechazado. |
+| DoD: persistencia | Cumple | `V1__identity_and_sessions.sql`; smoke-auth contra API/MySQL | Ciclo de sesión y revocación comprobados en el entorno local conectado a MySQL; pruebas de concurrencia en H2. |
+| DoD: secretos separados | Cumple | `application.yml`; `docker-compose.yml`; `.env.example` | Access/refresh se configuran por variables distintas; no se incluyen valores secretos en esta evidencia. |
+| DoD: pruebas/contrato | Cumple | `mvn verify` (10 pruebas); `contrato-auth.md`; smoke-auth (18 comprobaciones) | Resultados ejecutados el 2026-09-30. |
 
 ## Historial
-S2: propuesta pendiente de aprobación del usuario.
+S2: propuesta inicial. 2026-09-30: usuario autorizó completar S2; HU-002 validada y completada con la matriz de evidencia anterior.

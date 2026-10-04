@@ -49,4 +49,11 @@ FK preservan integridad; índices únicos hacen cumplir duplicados incluso con s
 No se almacenan access/refresh completos. `refresh_id` solo identifica el JWT firmado; por sí solo no autentica. La clave criptográfica permanece fuera de BD.
 
 ## Pendiente de siguientes incrementos
-Modelo de EPS/afiliación, sedes, profesionales, slots, reservas y auditoría. Decisiones de doble reserva y reprogramación se desarrollan con sus HU. Comparación contra modelo del trainer pendiente; no afirmar normalización completa del dominio con este esquema parcial.
+Modelo de EPS/afiliación, solicitudes de reprogramación y recuperación de contraseña quedan para siguientes incrementos. La comparación parcial contra el modelo de referencia está documentada a continuación; no se afirma normalización completa del dominio con el esquema actual.
+
+## Comparación documentada con la referencia — 2026-09-30
+La comparación es de cobertura y estructura; no sustituye la validación académica del trainer. V1/V2 cubren usuarios, roles, sesiones, sedes, especialidades, profesionales, relaciones N:M, bloques, slots, citas, estados e historial. Las tablas puente mantienen las relaciones multivaluadas fuera de las entidades y las transacciones referencian catálogos/estados por FK.
+
+En `database/reference/erd.mmd`, `ROLES` usa una clave sustituta más `code` único; V1 usa el código estable como PK natural. Ambas formas evitan repetir atributos descriptivos de rol. `AUTH_SESSIONS` implementa la sesión de refresh del incremento S2; la referencia la representa como `REFRESH_TOKENS` y también incluye `PASSWORD_RESET_TOKENS`.
+
+El modelo de referencia agrega EPS, regímenes, planes, afiliaciones y solicitudes de reprogramación, no implementados en S2/V2. Su ausencia no es una anomalía 3FN en las tablas existentes, pero sí una diferencia de cobertura del PRD para incrementos posteriores. No se afirma que el dominio completo esté implementado o normalizado por esta comparación parcial.

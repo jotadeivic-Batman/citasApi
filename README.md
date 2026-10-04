@@ -10,9 +10,9 @@ Desde la raíz:
 docker compose logs -f citas-api-dev
 ```
 
-El script genera dos secretos JWT aleatorios en `.env.s2` (ignorado por Git) solo si el archivo no existe. El overlay S2 conecta al esquema `citas_fcv_training`, disponible en el volumen existente, e inicia la aplicación. Conserva `.env` y datos previos. En un entorno nuevo, configurar las variables del ejemplo raíz y asegurar que `MYSQL_DATABASE` y `DB_NAME` coincidan con ese esquema o ajustar el overlay antes de iniciar.
+El script genera dos secretos JWT aleatorios en `.env.s2` (ignorado por Git) solo si el archivo no existe. El overlay S2 toma `DB_NAME` de `MYSQL_DATABASE`; `citas-db-ensure` crea el esquema si falta y concede permisos sin borrar el volumen. Conserva `.env` y datos previos.
 
-Comando equivalente tras generar secretos: `docker compose --env-file .env --env-file .env.s2 -f docker-compose.yml -f docker-compose.s2.yml up -d`. Usar siempre el script/overlay para iniciar; `docker compose up` sin overlay vuelve al contenedor de herramientas de la plantilla.
+Comando equivalente tras generar secretos: `docker compose --env-file .env --env-file .env.s2 -f docker-compose.yml -f docker-compose.s2.yml up -d`. Usar el script/overlay para iniciar S2.
 
 Health: http://localhost:8080/actuator/health. No hay usuarios ni contraseñas preconfigurados: registrarse con datos ficticios.
 
@@ -38,4 +38,4 @@ El primer comando ejecuta pruebas de integración con H2 aislado; no escribe en 
 - [Historias S2](docs/wiki/scrum/README.md)
 - [Evidencias y pendientes](docs/wiki/llm-wiki/wiki/s2-evidencia.md)
 
-Agenda, citas, recuperación de contraseña y automatizaciones pertenecen a siguientes incrementos. Las HU y el diseño no se consideran aprobados sin confirmación del usuario.
+La aprobación S2 de HU-001–HU-003 y del diseño local está registrada en `docs/wiki/scrum/`. Agenda ampliada, recuperación de contraseña y automatizaciones pertenecen a siguientes incrementos.
