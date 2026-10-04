@@ -16,6 +16,9 @@ public class SchedulingService {
     private final ProfessionalSlots professionalSlots;
     private final Appointments appointments;
     private final AppointmentHistories histories;
+    private final RescheduleRequests rescheduleRequests;
+    private final InsuranceManagement insuranceManagement;
+    private final PasswordResets passwordResets;
     private final AuthPorts.Users users;
     private final AuthPorts.Passwords passwords;
     private final Clock clock;
@@ -25,6 +28,9 @@ public class SchedulingService {
                              ProfessionalSlots professionalSlots,
                              Appointments appointments,
                              AppointmentHistories histories,
+                             RescheduleRequests rescheduleRequests,
+                             InsuranceManagement insuranceManagement,
+                             PasswordResets passwordResets,
                              AuthPorts.Users users,
                              AuthPorts.Passwords passwords,
                              Clock clock) {
@@ -34,6 +40,9 @@ public class SchedulingService {
         this.professionalSlots = professionalSlots;
         this.appointments = appointments;
         this.histories = histories;
+        this.rescheduleRequests = rescheduleRequests;
+        this.insuranceManagement = insuranceManagement;
+        this.passwordResets = passwordResets;
         this.users = users;
         this.passwords = passwords;
         this.clock = clock;
@@ -422,4 +431,187 @@ public class SchedulingService {
     public List<AppointmentStatusHistory> getAppointmentHistory(Long appointmentId) {
         return histories.findByAppointmentId(appointmentId);
     }
+
+    // ========================================================
+    // --- RF-15: Reprogramación de Citas (S4) ---
+    // ========================================================
+    public record RequestRescheduleCommand(Long appointmentId, Long patientUserId,
+                                           Short requestedLocationId, LocalDateTime requestedStartAt) {}
+
+    public RescheduleRequest requestReschedule(RequestRescheduleCommand cmd) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (cmd.requestedStartAt().isBefore(now)) {
+            throw SchedulingFailure.invalid("No se puede reprogramar a una fecha u hora en el pasado.");
+        }
+
+        Appointment app = appointments.findById(cmd.appointmentId())
+                .orElseThrow(() -> SchedulingFailure.notFound("Cita no encontrada."));
+
+        if (!app.patientUserId().equals(cmd.patientUserId())) {
+            throw SchedulingFailure.forbidden("No tienes permiso para solicitar la reprogramación de esta cita.");
+        }
+
+        AppointmentStatus currentStatus = catalogs.findStatusById(app.statusId())
+                .orElseThrow(() -> SchedulingFailure.invalid("Estado de cita inválido."));
+        if (!AppointmentStatus.APPROVED.equals(currentStatus.code())) {
+            throw SchedulingFailure.invalid("Solo las citas en estado APPROVED pueden ser reprogramadas (RF-15).");
+        }
+
+        if (app.scheduledStartAt().isBefore(now)) {
+            throw SchedulingFailure.invalid("No se puede reprogramar una cita pasada.");
+        }
+
+        Specialty specialty = catalogs.findSpecialtyById(app.specialtyId())
+                .orElseThrow(() -> SchedulingFailure.notFound("Especialidad no encontrada."));
+
+        LocalDateTime requestedEndAt = cmd.requestedStartAt().plusMinutes(specialty.durationMinutes());
+        List<ProfessionalSlot> newSlots = professionalSlots.findSlotsForRange(app.professionalId(), cmd.requestedStartAt(), requestedEndAt);
+
+        int expectedSlotsCount = specialty.durationMinutes() / 30;
+        if (newSlots.size() != expectedSlotsCount) {
+            throw SchedulingFailure.conflict("La nueva franja seleccionada no cuenta con slots disponibles continuos.");
+        }
+        for (ProfessionalSlot s : newSlots) {
+            if (!s.isAvailable()) {
+                throw SchedulingFailure.conflict("Uno o más slots del nuevo horario ya están ocupados o reservados.");
+            }
+        }
+
+        // Crear solicitud en PENDING (status 1)
+        RescheduleRequest req = rescheduleRequests.save(new RescheduleRequest(
+                null, app.id(), cmd.patientUserId(), cmd.requestedLocationId(), (short) 1,
+                cmd.requestedStartAt(), requestedEndAt, null, null, null));
+
+        histories.record(new AppointmentStatusHistory(
+                null, app.id(), app.statusId(), cmd.patientUserId(), "USER", null,
+                "Solicitud de reprogramación registrada para " + cmd.requestedStartAt()));
+
+        return req;
+    }
+
+    public RescheduleRequest approveReschedule(Long rescheduleId, Long adminUserId) {
+        RescheduleRequest req = rescheduleRequests.findById(rescheduleId)
+                .orElseThrow(() -> SchedulingFailure.notFound("Solicitud de reprogramación no encontrada."));
+
+        if (req.statusId() != 1) { // 1 = PENDING
+            throw SchedulingFailure.invalid("Solo se pueden aprobar solicitudes en estado pendiente.");
+        }
+
+        Appointment app = appointments.findById(req.appointmentId())
+                .orElseThrow(() -> SchedulingFailure.notFound("Cita no encontrada."));
+
+        // Liberar slots antiguos de la cita
+        professionalSlots.releaseSlots(app.id());
+
+        // Asignar los nuevos slots
+        List<ProfessionalSlot> newSlots = professionalSlots.findSlotsForRange(app.professionalId(), req.requestedStartAt(), req.requestedEndAt());
+        List<Long> slotIds = newSlots.stream().map(ProfessionalSlot::id).toList();
+        professionalSlots.assignSlots(slotIds, app.id());
+
+        // Actualizar la cita con la nueva fecha y sede
+        Appointment updatedApp = appointments.save(new Appointment(
+                app.id(), app.patientUserId(), app.professionalId(), req.requestedLocationId(), app.specialtyId(),
+                app.statusId(), req.requestedStartAt(), req.requestedEndAt(), null, app.createdAt(), null));
+
+        // Actualizar la solicitud a APPROVED (status 2)
+        RescheduleRequest approvedReq = rescheduleRequests.save(new RescheduleRequest(
+                req.id(), req.appointmentId(), req.requestedByUserId(), req.requestedLocationId(), (short) 2,
+                req.requestedStartAt(), req.requestedEndAt(), null, req.createdAt(), null));
+
+        histories.record(new AppointmentStatusHistory(
+                null, app.id(), app.statusId(), adminUserId, "ADMIN", null,
+                "Reprogramación aprobada para " + req.requestedStartAt()));
+
+        return approvedReq;
+    }
+
+    public RescheduleRequest rejectReschedule(Long rescheduleId, Long adminUserId, String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw SchedulingFailure.invalid("El motivo de rechazo de reprogramación es obligatorio.");
+        }
+
+        RescheduleRequest req = rescheduleRequests.findById(rescheduleId)
+                .orElseThrow(() -> SchedulingFailure.notFound("Solicitud de reprogramación no encontrada."));
+
+        if (req.statusId() != 1) {
+            throw SchedulingFailure.invalid("Solo se pueden rechazar solicitudes en estado pendiente.");
+        }
+
+        // Actualizar la solicitud a REJECTED (status 3) manteniendo la cita original intacta
+        RescheduleRequest rejectedReq = rescheduleRequests.save(new RescheduleRequest(
+                req.id(), req.appointmentId(), req.requestedByUserId(), req.requestedLocationId(), (short) 3,
+                req.requestedStartAt(), req.requestedEndAt(), reason.strip(), req.createdAt(), null));
+
+        histories.record(new AppointmentStatusHistory(
+                null, req.appointmentId(), 2, adminUserId, "ADMIN", null,
+                "Reprogramación rechazada: " + reason.strip()));
+
+        return rejectedReq;
+    }
+
+    public List<RescheduleRequest> getPendingReschedules() {
+        return rescheduleRequests.findPending();
+    }
+
+    public List<RescheduleRequest> getMyReschedules(Long userId) {
+        return rescheduleRequests.findByUserId(userId);
+    }
+
+    // ========================================================
+    // --- RF-03: Recuperación de Contraseña (S4) ---
+    // ========================================================
+    public record PasswordResetResponse(String email, String resetToken, LocalDateTime expiresAt) {}
+
+    public PasswordResetResponse requestPasswordReset(String email) {
+        var userOpt = users.findByEmail(email.strip().toLowerCase(Locale.ROOT));
+        if (userOpt.isEmpty()) {
+            // Retornamos sin exponer si existe o no por seguridad, pero en entorno laboratorio devolvemos respuesta controlada
+            throw SchedulingFailure.notFound("No existe una cuenta registrada con el correo indicado.");
+        }
+        var user = userOpt.get();
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now(clock).plusMinutes(30);
+
+        passwordResets.save(new PasswordResetToken(null, user.id(), token, expiresAt, null, null));
+        return new PasswordResetResponse(user.email(), token, expiresAt);
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        if (newPassword == null || newPassword.length() < 6) {
+            throw SchedulingFailure.invalid("La contraseña debe tener al menos 6 caracteres.");
+        }
+
+        PasswordResetToken resetToken = passwordResets.findByTokenHash(token)
+                .orElseThrow(() -> SchedulingFailure.notFound("Token de recuperación no válido o inexistente."));
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!resetToken.isValid(now)) {
+            throw SchedulingFailure.invalid("El token de recuperación ha expirado o ya fue utilizado.");
+        }
+
+        var user = users.findById(resetToken.userId())
+                .orElseThrow(() -> SchedulingFailure.notFound("Usuario no encontrado."));
+
+        String hash = passwords.hash(newPassword);
+        users.update(new User(
+                user.id(), user.firstName(), user.lastName(), user.documentType(), user.documentNumber(),
+                user.email(), user.phone(), hash, user.active(), user.roles()
+        ));
+
+        passwordResets.markUsed(resetToken.id());
+    }
+
+    // ========================================================
+    // --- RF-06 & RF-04: EPS, Planes y Afiliaciones (S4) ---
+    // ========================================================
+    public List<Insurance.Regime> getInsuranceRegimes() { return insuranceManagement.findRegimes(); }
+    public List<Insurance.EpsEntity> getEps(Boolean activeOnly) { return insuranceManagement.findEps(activeOnly); }
+    public Insurance.EpsEntity saveEps(Insurance.EpsEntity eps) { return insuranceManagement.saveEps(eps); }
+    public List<Insurance.Plan> getPlans(Long epsId, Boolean activeOnly) { return insuranceManagement.findPlans(epsId, activeOnly); }
+    public Insurance.Plan savePlan(Insurance.Plan plan) { return insuranceManagement.savePlan(plan); }
+    public Optional<Insurance.UserAffiliation> getUserAffiliation(Long userId) { return insuranceManagement.findUserAffiliation(userId); }
+    public Insurance.UserAffiliation affiliateUser(Long userId, Long planId, String membershipNumber) {
+        return insuranceManagement.saveAffiliation(new Insurance.UserAffiliation(null, userId, planId, membershipNumber.strip(), true, null));
+    }
 }
+

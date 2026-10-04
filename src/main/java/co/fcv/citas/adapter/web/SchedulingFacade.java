@@ -110,4 +110,65 @@ public class SchedulingFacade {
     public List<AppointmentStatusHistory> getAppointmentHistory(Long appointmentId) {
         return service.getAppointmentHistory(appointmentId);
     }
+
+    // --- S4: Reprogramación ---
+    @Transactional
+    public RescheduleRequest requestReschedule(SchedulingService.RequestRescheduleCommand cmd) {
+        return service.requestReschedule(cmd);
+    }
+
+    @Transactional
+    public RescheduleRequest approveReschedule(Long rescheduleId, Long adminUserId) {
+        return service.approveReschedule(rescheduleId, adminUserId);
+    }
+
+    @Transactional
+    public RescheduleRequest rejectReschedule(Long rescheduleId, Long adminUserId, String reason) {
+        return service.rejectReschedule(rescheduleId, adminUserId, reason);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RescheduleRequest> getPendingReschedules() {
+        return service.getPendingReschedules();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RescheduleRequest> getMyReschedules(Long userId) {
+        return service.getMyReschedules(userId);
+    }
+
+    // --- S4: Password Reset ---
+    @Transactional
+    public SchedulingService.PasswordResetResponse requestPasswordReset(String email) {
+        return service.requestPasswordReset(email);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        service.resetPassword(token, newPassword);
+    }
+
+    // --- S4: Seguros / EPS ---
+    @Transactional(readOnly = true)
+    public List<Insurance.Regime> getInsuranceRegimes() { return service.getInsuranceRegimes(); }
+
+    @Transactional(readOnly = true)
+    public List<Insurance.EpsEntity> getEps(Boolean activeOnly) { return service.getEps(activeOnly); }
+
+    @Transactional
+    public Insurance.EpsEntity saveEps(Insurance.EpsEntity eps) { return service.saveEps(eps); }
+
+    @Transactional(readOnly = true)
+    public List<Insurance.Plan> getPlans(Long epsId, Boolean activeOnly) { return service.getPlans(epsId, activeOnly); }
+
+    @Transactional
+    public Insurance.Plan savePlan(Insurance.Plan plan) { return service.savePlan(plan); }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<Insurance.UserAffiliation> getUserAffiliation(Long userId) { return service.getUserAffiliation(userId); }
+
+    @Transactional
+    public Insurance.UserAffiliation affiliateUser(Long userId, Long planId, String membershipNumber) {
+        return service.affiliateUser(userId, planId, membershipNumber);
+    }
 }

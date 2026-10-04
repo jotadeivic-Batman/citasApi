@@ -10,6 +10,8 @@
   - [Modelo de datos y 3FN](modelo-datos.md)
   - [Evidencia y pendientes S2](s2-evidencia.md)
   - [Evidencia y resultados S3](s3-evidencia.md)
+  - [Evidencia y cierre MVP S4](s4-evidencia.md)
+  - [Ciclos Autónomos S4](s4-autonomous-loops.md)
   - [Registro de cambios](log.md)
 - 📂 **Schema**
   - [Convenciones](../schema/convenciones.md)

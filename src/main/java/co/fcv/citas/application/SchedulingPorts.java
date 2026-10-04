@@ -57,4 +57,29 @@ public final class SchedulingPorts {
         void record(AppointmentStatusHistory history);
         List<AppointmentStatusHistory> findByAppointmentId(Long appointmentId);
     }
+
+    public interface RescheduleRequests {
+        RescheduleRequest save(RescheduleRequest request);
+        Optional<RescheduleRequest> findById(Long id);
+        List<RescheduleRequest> findByUserId(Long userId);
+        List<RescheduleRequest> findPending();
+    }
+
+    public interface InsuranceManagement {
+        List<Insurance.Regime> findRegimes();
+        List<Insurance.EpsEntity> findEps(Boolean activeOnly);
+        Insurance.EpsEntity saveEps(Insurance.EpsEntity eps);
+        Optional<Insurance.EpsEntity> findEpsById(Long id);
+        List<Insurance.Plan> findPlans(Long epsId, Boolean activeOnly);
+        Insurance.Plan savePlan(Insurance.Plan plan);
+        Optional<Insurance.Plan> findPlanById(Long id);
+        Optional<Insurance.UserAffiliation> findUserAffiliation(Long userId);
+        Insurance.UserAffiliation saveAffiliation(Insurance.UserAffiliation affiliation);
+    }
+
+    public interface PasswordResets {
+        PasswordResetToken save(PasswordResetToken token);
+        Optional<PasswordResetToken> findByTokenHash(String tokenHash);
+        void markUsed(Long tokenId);
+    }
 }
