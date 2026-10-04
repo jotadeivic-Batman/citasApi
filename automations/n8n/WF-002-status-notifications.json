@@ -1,0 +1,94 @@
+{
+  "name": "WF-002 — Notificacion por cambio de estado de cita",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "status-change",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook: Cambio de Estado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body || $input.first().json;\n\nconst eventType = payload.eventType || 'STATUS_UPDATE';\nconst appointmentId = payload.appointmentId || 'N/A';\nconst status = payload.status || 'UPDATED';\nconst patientEmail = payload.patientEmail || 'paciente.sintetico@fcv.test';\nconst specialty = payload.specialtyName || 'Consulta Médica';\nconst reason = payload.reason ? `<p><strong>Motivo / Observación:</strong> ${payload.reason}</p>` : '';\n\nlet subject = `Notificación FCV: Cita #${appointmentId} - ${status}`;\nlet bannerColor = '#0284c7';\nlet statusMessage = `El estado de su cita médica ha cambiado a: <strong>${status}</strong>.`;\n\nif (status === 'APPROVED') {\n  bannerColor = '#16a34a';\n  statusMessage = 'Su cita médica ha sido <strong>APROBADA</strong> exitosamente.';\n} else if (status === 'REJECTED') {\n  bannerColor = '#dc2626';\n  statusMessage = 'Su solicitud de cita ha sido <strong>RECHAZADA</strong> por administración.';\n} else if (status === 'CANCELLED') {\n  bannerColor = '#d97706';\n  statusMessage = 'Su cita médica ha sido <strong>CANCELADA</strong> y el horario ha sido liberado.';\n}\n\nconst html = `\n  <div style=\"font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">\n    <div style=\"background-color: ${bannerColor}; color: white; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 16px;\">\n      Fundación Cardiovascular de Colombia — FCV Citas\n    </div>\n    <p style=\"margin-top: 16px;\">Estimado(a) paciente,</p>\n    <p>${statusMessage}</p>\n    <ul>\n      <li><strong>Cita #:</strong> ${appointmentId}</li>\n      <li><strong>Especialidad:</strong> ${specialty}</li>\n      <li><strong>Fecha del Evento:</strong> ${new Date().toLocaleString()}</li>\n    </ul>\n    ${reason}\n    <p style=\"color: #64748b; font-size: 12px; margin-top: 20px;\">Mensaje sintético de laboratorio académico FCV.</p>\n  </div>\n`;\n\nreturn [{\n  json: {\n    patientEmail,\n    subject,\n    html,\n    eventId: payload.eventId || Date.now(),\n    appointmentId,\n    status\n  }\n}];"
+      },
+      "id": "node-build-notification",
+      "name": "Formatear Mensaje y Asunto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "emailType": "html",
+        "toEmail": "={{ $json.patientEmail }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}"
+      },
+      "id": "node-send-gmail-status",
+      "name": "Enviar Gmail Notificación",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [680, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID_GMAIL_OAUTH",
+          "name": "Cuenta Gmail de Laboratorio FCV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "responseBody": "={\n  \"status\": \"RECEIVED\",\n  \"eventId\": {{ $json.eventId }},\n  \"appointmentId\": {{ $json.appointmentId }},\n  \"currentStatus\": \"{{ $json.status }}\",\n  \"processedAt\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "id": "node-respond-webhook",
+      "name": "Responder al Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 400]
+    }
+  ],
+  "connections": {
+    "Webhook: Cambio de Estado": {
+      "main": [
+        [
+          {
+            "node": "Formatear Mensaje y Asunto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Mensaje y Asunto": {
+      "main": [
+        [
+          {
+            "node": "Enviar Gmail Notificación",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Responder al Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

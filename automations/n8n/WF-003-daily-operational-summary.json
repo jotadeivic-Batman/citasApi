@@ -1,0 +1,106 @@
+{
+  "name": "WF-003 — Resumen operativo diario",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-summary",
+      "name": "Schedule Trigger (20:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://citas-api-dev:8080/api/admin/appointments",
+        "method": "GET",
+        "authentication": "none",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-http-get-all-appointments",
+      "name": "Consultar Citas del Día",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst stats = {\n  total: items.length,\n  byLocation: { HIC: 0, ICV: 0 },\n  byStatus: { REQUESTED: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0, COMPLETED: 0, NO_SHOW: 0 },\n  bySpecialty: {}\n};\n\nfor (const item of items) {\n  const a = item.json;\n  if (a.locationName && a.locationName.includes('Internacional')) stats.byLocation.HIC++;\n  else stats.byLocation.ICV++;\n\n  if (stats.byStatus[a.statusCode] !== undefined) stats.byStatus[a.statusCode]++;\n  \n  const spec = a.specialtyName || 'Otras';\n  stats.bySpecialty[spec] = (stats.bySpecialty[spec] || 0) + 1;\n}\n\nconst html = `\n  <div style=\"font-family: Arial, sans-serif; color: #1e293b; max-width: 650px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">\n    <h2 style=\"color: #0284c7; margin-top: 0;\">Reporte Operativo Diario — FCV Citas</h2>\n    <p><strong>Fecha del Reporte:</strong> ${new Date().toLocaleDateString()}</p>\n    <p><strong>Total de Citas Registradas:</strong> ${stats.total}</p>\n    <hr style=\"border: none; border-top: 1px solid #cbd5e1; margin: 15px 0;\" />\n    <h3>Distribución por Sede</h3>\n    <ul>\n      <li>Hospital Internacional de Colombia (HIC): ${stats.byLocation.HIC}</li>\n      <li>Instituto Cardiovascular (ICV): ${stats.byLocation.ICV}</li>\n    </ul>\n    <h3>Distribución por Estado</h3>\n    <ul>\n      <li>Aprobadas: ${stats.byStatus.APPROVED}</li>\n      <li>Completadas (Atendidas): ${stats.byStatus.COMPLETED}</li>\n      <li>Inasistencias (No Show): ${stats.byStatus.NO_SHOW}</li>\n      <li>Canceladas: ${stats.byStatus.CANCELLED}</li>\n      <li>Rechazadas: ${stats.byStatus.REJECTED}</li>\n      <li>Pendientes (Requested): ${stats.byStatus.REQUESTED}</li>\n    </ul>\n    <p style=\"color: #64748b; font-size: 12px; margin-top: 20px;\">Generado automáticamente por el flujo de automatización FCV n8n.</p>\n  </div>\n`;\n\nreturn [{\n  json: {\n    reportDate: new Date().toISOString(),\n    totalAppointments: stats.total,\n    summaryHtml: html\n  }\n}];"
+      },
+      "id": "node-aggregate-metrics",
+      "name": "Agrupar Métricas Diarias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "emailType": "html",
+        "toEmail": "admin.coordinacion@fcv.test",
+        "subject": "=[FCV Citas] Resumen Operativo Diario — {{ new Date().toLocaleDateString() }}",
+        "html": "={{ $json.summaryHtml }}"
+      },
+      "id": "node-send-summary-email",
+      "name": "Enviar Gmail Resumen",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [860, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID_GMAIL_OAUTH",
+          "name": "Cuenta Gmail de Laboratorio FCV"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (20:00)": {
+      "main": [
+        [
+          {
+            "node": "Consultar Citas del Día",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Citas del Día": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Métricas Diarias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Métricas Diarias": {
+      "main": [
+        [
+          {
+            "node": "Enviar Gmail Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

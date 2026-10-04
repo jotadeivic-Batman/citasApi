@@ -14,6 +14,8 @@
   - [Ciclos Autónomos S4](s4-autonomous-loops.md)
   - [Evidencia de Automatizaciones S5](s5-evidencia.md)
   - [Seguridad y Riesgos Residuales S5](s5-riesgos-seguridad.md)
+  - [Evidencia de Cierre Final S6](s6-evidencia.md)
+  - [Guía de Sustentación Técnica](sustentacion-tecnica.md)
   - [Registro de cambios](log.md)
 - 📂 **Schema**
   - [Convenciones](../schema/convenciones.md)
