@@ -1,0 +1,127 @@
+{
+  "name": "WF-001 — Recordatorio de citas proximas",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Schedule Trigger (07:00 AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://citas-api-dev:8080/api/admin/appointments?statusId=2",
+        "method": "GET",
+        "authentication": "none",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-http-get-appointments",
+      "name": "Obtener Citas Aprobadas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtrar citas en las proximas 24 horas\nconst items = $input.all();\nconst now = new Date();\nconst next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);\n\nconst upcomingAppointments = items.filter(item => {\n  const app = item.json;\n  if (!app.scheduledStartAt || app.statusCode !== 'APPROVED') return false;\n  const start = new Date(app.scheduledStartAt);\n  return start >= now && start <= next24h;\n});\n\nreturn upcomingAppointments.map(item => ({\n  json: {\n    ...item.json,\n    reminderSubject: `Recordatorio de Cita Médica FCV - ${item.json.specialtyName}`,\n    reminderHtml: `\n      <div style=\"font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">\n        <h2 style=\"color: #0284c7; margin-top: 0;\">Fundación Cardiovascular de Colombia</h2>\n        <p>Estimado(a) paciente,</p>\n        <p>Le recordamos su cita médica programada:</p>\n        <ul>\n          <li><strong>Especialidad:</strong> ${item.json.specialtyName}</li>\n          <li><strong>Profesional:</strong> Dr(a). ${item.json.professionalName}</li>\n          <li><strong>Sede:</strong> ${item.json.locationName}</li>\n          <li><strong>Fecha y Hora:</strong> ${item.json.scheduledStartAt}</li>\n        </ul>\n        <p style=\"color: #64748b; font-size: 12px;\">Este es un mensaje automático de laboratorio con datos sintéticos.</p>\n      </div>\n    `\n  }\n}));"
+      },
+      "id": "node-filter-and-format",
+      "name": "Filtrar 24h y Formatear",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "emailType": "html",
+        "toEmail": "paciente.sintetico@fcv.test",
+        "subject": "={{ $json.reminderSubject }}",
+        "html": "={{ $json.reminderHtml }}"
+      },
+      "id": "node-send-email",
+      "name": "Enviar Gmail Recordatorio",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [860, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID_GMAIL_OAUTH",
+          "name": "Cuenta Gmail de Laboratorio FCV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sentCount = $input.all().length;\nreturn [{\n  json: {\n    status: 'SUCCESS',\n    remindersSent: sentCount,\n    executedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-audit-log",
+      "name": "Registro de Auditoria",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (07:00 AM)": {
+      "main": [
+        [
+          {
+            "node": "Obtener Citas Aprobadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Citas Aprobadas": {
+      "main": [
+        [
+          {
+            "node": "Filtrar 24h y Formatear",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar 24h y Formatear": {
+      "main": [
+        [
+          {
+            "node": "Enviar Gmail Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Gmail Recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Registro de Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

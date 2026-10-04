@@ -12,6 +12,8 @@
   - [Evidencia y resultados S3](s3-evidencia.md)
   - [Evidencia y cierre MVP S4](s4-evidencia.md)
   - [Ciclos Autónomos S4](s4-autonomous-loops.md)
+  - [Evidencia de Automatizaciones S5](s5-evidencia.md)
+  - [Seguridad y Riesgos Residuales S5](s5-riesgos-seguridad.md)
   - [Registro de cambios](log.md)
 - 📂 **Schema**
   - [Convenciones](../schema/convenciones.md)
