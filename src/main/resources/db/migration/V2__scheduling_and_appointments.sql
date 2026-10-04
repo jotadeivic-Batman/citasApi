@@ -145,24 +145,24 @@ INSERT INTO app_users (id, first_name, last_name, document_type, document_number
 (100, 'Administrador', 'FCV Citas', 'CC', '1000000001', 'admin@fcv.test', '+57 300 111 2233', '$2a$12$.jb7v/U.mmm8MaCrsO0UVehjq69n2ZeLAzPE4xJZzNYEAbccp43Om', TRUE);
 INSERT INTO user_roles (user_id, role_code) VALUES (100, 'USER'), (100, 'ADMIN');
 
--- Profesional 1: Dr. Carlos Mendoza (Medicina General) / Doc123*
+-- Profesional 1: Dr. Santiago Morales (Medicina General) / Doc123*
 INSERT INTO app_users (id, first_name, last_name, document_type, document_number, email, phone, password_hash, active) VALUES
-(101, 'Carlos', 'Mendoza', 'CC', '1000000002', 'dr.mendoza@fcv.test', '+57 300 222 3344', '$2a$12$NeqZ94gn4v9cbBhNN.QxfeG.Lk9B7KtvoFrjXt2pj//qIQGslRk5u', TRUE);
+(101, 'Santiago', 'Morales', 'CC', '1000000002', 'dr.mendoza@fcv.test', '+57 300 222 3344', '$2a$12$NeqZ94gn4v9cbBhNN.QxfeG.Lk9B7KtvoFrjXt2pj//qIQGslRk5u', TRUE);
 INSERT INTO user_roles (user_id, role_code) VALUES (101, 'USER'), (101, 'PROFESSIONAL');
 
--- Profesional 2: Dra. Sofía Castro (Cardiología) / Doc123*
+-- Profesional 2: Dra. Elena Restrepo (Cardiología) / Doc123*
 INSERT INTO app_users (id, first_name, last_name, document_type, document_number, email, phone, password_hash, active) VALUES
-(102, 'Sofía', 'Castro', 'CC', '1000000003', 'dra.castro@fcv.test', '+57 300 333 4455', '$2a$12$NeqZ94gn4v9cbBhNN.QxfeG.Lk9B7KtvoFrjXt2pj//qIQGslRk5u', TRUE);
+(102, 'Elena', 'Restrepo', 'CC', '1000000003', 'dra.castro@fcv.test', '+57 300 333 4455', '$2a$12$NeqZ94gn4v9cbBhNN.QxfeG.Lk9B7KtvoFrjXt2pj//qIQGslRk5u', TRUE);
 INSERT INTO user_roles (user_id, role_code) VALUES (102, 'USER'), (102, 'PROFESSIONAL');
 
--- Profesional 3: Dr. Andrés Ruiz (Pediatría) / Doc123*
+-- Profesional 3: Dr. Mateo Silva (Pediatría) / Doc123*
 INSERT INTO app_users (id, first_name, last_name, document_type, document_number, email, phone, password_hash, active) VALUES
-(103, 'Andrés', 'Ruiz', 'CC', '1000000004', 'dr.ruiz@fcv.test', '+57 300 444 5566', '$2a$12$NeqZ94gn4v9cbBhNN.QxfeG.Lk9B7KtvoFrjXt2pj//qIQGslRk5u', TRUE);
+(103, 'Mateo', 'Silva', 'CC', '1000000004', 'dr.ruiz@fcv.test', '+57 300 444 5566', '$2a$12$NeqZ94gn4v9cbBhNN.QxfeG.Lk9B7KtvoFrjXt2pj//qIQGslRk5u', TRUE);
 INSERT INTO user_roles (user_id, role_code) VALUES (103, 'USER'), (103, 'PROFESSIONAL');
 
--- Paciente sintético: Laura Martínez / User123*
+-- Paciente sintético: Valentina Gómez / User123*
 INSERT INTO app_users (id, first_name, last_name, document_type, document_number, email, phone, password_hash, active) VALUES
-(104, 'Laura', 'Martínez', 'CC', '1000000005', 'paciente@fcv.test', '+57 300 555 6677', '$2a$12$cXROFTFaEqh/uogkkHMm5e2MbT7CNZlHHwG1/s1yk9sn14qA08cmG', TRUE);
+(104, 'Valentina', 'Gómez', 'CC', '1000000005', 'paciente@fcv.test', '+57 300 555 6677', '$2a$12$cXROFTFaEqh/uogkkHMm5e2MbT7CNZlHHwG1/s1yk9sn14qA08cmG', TRUE);
 INSERT INTO user_roles (user_id, role_code) VALUES (104, 'USER');
 
 -- ========================================================
